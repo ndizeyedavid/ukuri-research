@@ -1,3 +1,5 @@
+import { searchByTitle, getWork } from "./openalex.js"
+
 const STOPWORDS = new Set([
     "the",
     "a",
@@ -258,5 +260,364 @@ export function parseRef(row) {
     const doi = doiMatch ? doiMatch[0].replace(/[.,;:)]+$/, "") : null;
 
     const work = text
-        .replace() // 327
+        .replace(/^\s*(?:\[\d{1,3}\]|\(\d{1,3}\)|\d{1,3}[.)])\s+/, "")
+        .replace(/\b(?:https?:\/\/)?(?:dx\.)?doi\.org\/\S+/gi, " ")
+        .replace(/\bdoi:\s*\S+/gi, " ")
+        .replace(/https?:\/\/\S+/gi, " ")
+        .replace(/10\.\d{4,9}\/\S+/g, " ")
+        .replace(/\S+\.(?:pdf|html?|php|aspx?)\b\S*/gi, " ")
+        .replace(/\b(?:last\s+)?accessed(?:\s+on)?\s+(?:\d{1,2}\s+)?\p{L}+\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\.?/giu, " ")
+        .replace(/\b(?:last\s+)?accessed(?:\s+on)?\s+\d{1,2}\s+\p{L}+\.?,?\s+\d{4}\.?/giu, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    let title = null;
+    let authors = "";
+    let year = null;
+    let rest = work;
+
+    // titles with quotes
+    const q = work.match(/["“]([^"”]{4,}?)[,.]?["”]/);
+    if (q) {
+        title = cleanTitle(q[1]);
+        authors = work.slice(0, q.index);
+        rest = work.slice(q.index + q[0].length);
+        year = pickYear(rest) ?? pickYear(authors);
+    }
+
+    if (!title) {
+        const p = work.match(/\(\s*((?:1[5-9]|20)\d{2})[a-z]?(?:\s*[,;][^)]*)?\)|\(\s*n\.\s?d\.\s*\)/i);
+        if (p) {
+            authors = work.slice(0, p.index);
+            year = p[1] ? parseInt(p[1], 10) : null;
+            const after = work.slice(p.index + p[0].length).replace(/^[\s.,:]+/, "");
+            const first = sentences(after)[0];
+            if (first) title = cleanTitle(first.text);
+        }
+    }
+
+    if (!title) {
+        const block = authorBlock(work);
+        if (block) {
+            const parts = sentences(work.slice(block.length));
+            const first = parts.find((x) => !/^\(?\d{4}[a-z]?\)?\.?$/.test(x.text));
+            if (first && first.text.replace(/[^\p{L}]/gu, "").length >= 4) {
+                title = cleanTitle(first.text);
+                authors = block;
+            }
+        }
+    }
+
+    if (!title) {
+        const h = work.match(/^(.{2,300}?)\.\s+((?:1[5-9]|20)\d{2})[a-z]?\.\s+(.+)$/);
+        if (h) {
+            const first = sentences(h[3])[0];
+            if (first && first.text.replace(/[^\p{L}]/gu, "").length >= 4){
+                authors = h[1];
+                year = parseInt(h[2], 10);
+                title = cleanTitle(first.text);
+            }
+        }
+    }
+
+    if (!title) {
+        const parts = sentences(work);
+        let k = 0;
+        if (parts.length > 1 && looksLikeAuthors(parts[0].text)) k = 1;
+
+        while (
+            k < parts.length - 1 &&
+            looksLikeAuthors(parts[k].text) &&
+            parts[k].text.split(/\s+/).length <= 6
+        )
+         k++;
+        
+        const cand = parts[k];
+        if (cand && cand.text.replace(/[^\p{L}]/gu, "").length >= 4) {
+            title = cleanTitle(cand.text);
+            authors = work.slice(0, cand.start);
+        }
+    }
+
+    if (year === null) year = pickYear(title ? work.replace(title, " ") : work);
+    if (title && title.length < 4) title = null;
+
+    return {
+        raw: text,
+        doi,
+        year,
+        surname: surnameFrom(authors),
+        title: title || null,
+    }
+}
+
+const UNVERIFIABLE = /(retrieved from|\bisbn\b|\bwebpage\b|\[web page\]|\bblog post\b)/i;
+export const isUnverifiable = (raw) => UNVERIFIABLE.test(String(raw || ""));
+
+const hasWebLink = (raw) => /https?:\/\/(?!(?:dx\.)?doi\.org)|\baccessed\b/i.test(String(raw || ""));
+
+function surnameHit(parsedSurname, work) {
+    if (!parsedSurname) return 0.5;
+
+    const want = normalize(parsedSurname);
+    const wantTail = want.split(" ").pop();
+    return (work.authors || []).some((a) => {
+        const toks = normalize(a).split(" ");
+        return toks.includes(wantTail) || normalize(a).includes(want);
+    }) ? 1 : 0;
+}
+
+function yearSim(a, b) {
+    if (!a || !b) return 0.5;
+    const d = Math.abs(a - b);
+    return d ===0 ? 1 : d === 1 ? 0.8 : d <= 3 ? 0.3 : 0;
+}
+
+function scoreAgainst(parsed, work) {
+    const t = titleScore(parsed.title || "", work.title);
+    const y = yearSim(parsed.year, work.year);
+    const a = surnameHit(parsed.surname, work);
+    let score = Math.round(100 * (0.7 * t + 0.15 * y + 0.15 * a));
+
+    if (informedTokens(parsed.title) < 4 && (a < 1 || y < 0.8)) score = Math.min(score, 70);
+    return score;
+}
+
+function differences(parsed, work) {
+    const out = [];
+
+    if (parsed.title && titleScore(parsed.title, work.title) < 0.9) out.push("title");
+    if (parsed.year && work.year && parsed.year !== work.year) out.push(`year (${parsed.year} vs ${work.year})`);
+    if (parsed.surname && surnameHit(parsed.surname, work) < 1) out.push("authors");
+    if (!out.length) return "minor details";
+    return out.length === 1 ? out[0] : `${out.slice(0, -1).join(", ")} and ${out[out.length - 1]}`;
+}
+
+const slim = (w) => ({
+    shortId: w.shortId,
+    title: w.title,
+    year: w.year,
+    doi: w.doi,
+    journal: w.journal,
+    authors: (w.authors || []).slice(0, 5),
+    citedByCount: w.citedByCount,
+    isOA: w.isOA,
+    isRetracted: w.isRetracted
+})
+
+export async function matchReference(raw) {
+    const parsed = parseRef(raw);
+    const base = {
+        ref: parsed.raw,
+        parsedYear: parsed.year,
+        parsedTitle: parsed.title,
+        parsedDoi: parsed.doi
+    };
+
+    if (isUnverifiable(raw)) {
+        return {
+            ...base,
+            verdict: "unverifiable",
+            score: null,
+            matched: null,
+            note: "Looks like a book, website or report. OpenAlex can't verify these reliably.",
+        };
+    }
+
+    if (parsed.doi) {
+        try {
+            const w = await getWork(`doi:${parsed.doi}`);
+            const score = scoreAgainst(parsed, w);
+            const yDelta = parsed.year && w.year ? Math.abs(parsed.year - w.year) : null;
+            
+            if (w.isRetracted) return {
+                ...base,
+                verdict: "retracted",
+                score,
+                matched: slim(w),
+                note: "DOI resolves, but this work is retracted."
+            };
+
+            if (parsed.title && titleScore(parsed.title, w.title) < 0.5) {
+                return {
+                    ...base,
+                    verdict: "mismatch",
+                    score,
+                    matched: slim(w),
+                    note: "DOI resolves, but the title looks different from the reference. Possible mutation."
+                };
+            }
+            const strongTitle = !parsed.title || titleScore(parsed.title, w.title) >= 0.85;
+            if (yDelta !== null && (yDelta > 3 || (yDelta > 1 && !strongTitle))) {
+                return {
+                    ...base,
+                    verdict: "mismatch",
+                    score,
+                    matched: slim(w),
+                    note: `DOI resolves, but the year differs (ref says ${parsed.year}, OpenAlex says ${w.year}). Possible mutation.`,
+                }
+            }
+            if (yDelta) {
+                return {
+                    ...base,
+                    verdict: "valid",
+                    score: Math.max(score, 85),
+                    matched: slim(w),
+                    note: `Exact DOI match. OpenAlex lists ${w.year}, the reference says ${parsed.year}: usually online-first versus print year.`
+                };
+            }
+
+            // finally if good okay
+            return {
+                ...base,
+                verdict: "valid",
+                score,
+                matched: slim(w),
+                note: "Exact DOI match.",
+            }
+        } catch(err) {
+            parsed.doiFailed = true;
+        }
+    }
+
+    if (!parsed.title || parsed.title.length < 6 || informedTokens(parsed.title) < 2) {
+        return {
+            ...base,
+            verdict: "unverifiable",
+            score: null,
+            matched: null,
+            note: "Couldn't parse a usable title from this reference (too little signal)."
+        }
+    }
+    if (informedTokens(paprsed.title) < 4 && !parsed.surname && !parsed.year) {
+        return {
+            ...base,
+            verdict: "unverifiable",
+            score: null,
+            matched: null,
+            note: "Title is too short to match without an author or year. Check it by hand."
+        }
+    }
+    let candidates = [];
+    try {
+        candidates = await searchByTitle(parsed.title, { perPage: 5 });
+    } catch(err) {
+        return {
+            ...base,
+            verdict: "unverfiable",
+            score: null,
+            matched: null,
+            note: `Lookup failed (${err.message}). Try again.`
+        }
+    }
+
+    let best = null;
+    let bestScore = -1;
+
+    const consider = (list) => {
+        for (const w of list) {
+            const sc = scoreAgainst(parsed, w);
+            if (sc > bestScore) {
+                bestScore = sc;
+                best = w;
+            }
+        }
+    };
+    consider(candidates);
+
+    if (bestScore < 75 && parsed.surname) {
+        try {
+            consider(
+                await searchByTitle(`${parsed.title} ${parsed.surname}`, {
+                    perPage: 5,
+                })
+            )
+        } catch(err) {
+            console.log(err);
+        }
+    }
+
+    if (bestScore < 75) {
+        try {
+            consider(
+                await searchByTitle(parsed.title, {
+                    perPage: 5,
+                    mode: "title",
+                    year: parsed.year
+                })
+            );
+        } catch(err) {
+            console.log(err);
+        }
+    }
+
+    const web = hasWebLink(row);
+    if (!best) {
+        return web ? {
+            ...base,
+            verdict: "unverifiable",
+            score: null,
+            matched: null,
+            note: "Not found in OpenAlex Web sources often are not indexed, so check the link by hand.",
+        } : {
+            ...base, 
+            verdict: "ghost",
+            score: 0,
+            matched: null,
+            note: "No candidate papers found. Possibly a ghost reference."
+        };
+    }
+    const doiNote = parsed.doiFailed ? "DOI did not resolve; matched by title." : "";
+    if (best.isRetracted && bestScore >= 50) {
+        return {
+            ...base,
+            verdict: "retracted",
+            score: bestScore,
+            matched: slim(best),
+            note: doiNote + "Best match is marked retracted in OpenAlex.",
+        }
+    }
+
+    if (bestScore >= 75) return {
+        ...base,
+        verdict: "valid",
+        score: bestScore,
+        matched: slim(best),
+        note: doiNote + "Strong match."
+    };
+
+    if (web && bestScore < 75 && titleScore(parsed.title, best.title) < 0) {
+        return {
+            ...base,
+            verdict: "unverifiable",
+            score: bestScore,
+            matched: null,
+            note:doiNote + "No close match is OpenAlex. Web source often are not indexed, so check the link by hand."
+        }
+    }
+    if (bestScore >= 50) return {
+        ...base,
+        verdict: "mismatch",
+        score: bestScore,
+        matched: slim(best),
+        note: doiNote + `Closest match differs in ${differences(parsed, best)}. Check it is the paper you meant.`
+    }
+
+    if (web) {
+        return {
+            ...base,
+            verdict: "unverfiable",
+            score: bestScore,
+            matched: null,
+            note: doiNote +  "No close match in OpenAlex. Web sources often are not indexed, so check the link by hand."
+        }
+    }
+
+    return {
+        ...base,
+        verdict: "ghost",
+        score: bestScore,
+        matched: slim(best),
+        note: doiNote + "Nothing close enough found. Possibly a ghost reference."
+    }
 }
