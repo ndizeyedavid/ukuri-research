@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ukuri Research Audito | Search</title>
+    <meta name="description" content="Search academic papers via OpenAlex, build APA 7 citations, and audit reference lists for ghost citations." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/styles.css" />
+    <meta name="theme-color" content="#f4f4f3" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ukuri Research Auditor" />
+    <meta property="og:description" content="Search academic papers, generate APA 7 citations, and audit your reference list, powered by OpenAlex." />
+    <meta property="og:site_name" content="Ukuri Research Auditor" />
+    <meta name="twitter:card" content="summary" />
+    <script type="module" src="/js/components.js"></script>
+    <script type="module" src="/js/search.js"></script>
+</head>
+<body data-page="search" data-search-state="idle">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="shell">
+        <div data-component="sidebar"></div>
+
+        <main class="panel" id="main" tabindex="-1">
+            <header class="top">
+                <h1 class="topbar-title">Search</h1>
+                <div class="topbar-actions">
+                    <button class="topbar-link" id="newSearch" type="button" hidden>New Search</button>
+                    <a class="topbar-link" href="https://docs.openalex.org" rel="noopener noreferrer" target="_blank">OpenAlex</a>
+                </div>
+            </header>
+
+            <div class="page search-page" id="searchPage" data-state="idle">
+                <div class="search-stage">
+                    <div class="search-hero">
+                        <span class="imigongo-mark" aria-hidden="true"></span>
+                        <h2 class="search-hero-title">What are you <em>researching</em>?</h2>
+                        <p class="search-hero-sub">Search ~250M scholarly works indexed by OpenAlex, then cite or save them in APA 7.</p>
+                    </div>
+
+                    <form role="search" id="searchForm" class="composer">
+                        <div class="composer-field">
+                            <i class="fa-solid fa-magnifying-glass composer-icon" aria-hidden="true"></i>
+                            <input class="composer-input" id="q" name="q" type="search" required maxlength="200" placeholder="Search Papers, topics, authors..." autocomplete="off" aria-label="Search papers" autofocus />
+                            <kbd class="composer-kbd" aria-hidden="true">/</kbd>
+                            <button class="composer-submit" type="submit" aria-label="Search">
+                                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        <div class="composer-bar">
+                            <label class="pill">
+                                <span class="pill-key">from</span>
+                                <input id="yearFrom" type="number" min="1500" max="2100" placeholder="any" aria-label="Year from" />
+                            </label>
+                            <label class="pill">
+                                <span class="pill-key">to</span>
+                                <input id="yearTo" type="number" min="1500" max="2100" placeholder="any" aria-label="Year to" />
+                            </label>
+                            <label class="pill">
+                                <span class="pill-key">Type</span>
+                                <select id="type" aria-label="Work type">
+                                    <option value="">all</option>
+                                    <option value="article">article</option>
+                                    <option value="review">review</option>
+                                    <option value="conference-paper">conference</option>
+                                    <option value="preprint">preprint</option>
+                                    <option value="book">book</option>
+                                    <option value="dissertation">dissertation</option>
+                                    <option value="report">report</option>
+                                </select>
+                            </label>
+                            <label class="pill">
+                                <span class="pill-key">sort</span>
+                                <select id="sort" aria-label="Sort by">
+                                    <option value="relevance">relevance</option>
+                                    <option value="cited_by_count">most cited</option>
+                                    <option value="publication_date">newest</option>
+                                </select>
+                            </label>
+                            <label class="pill pill-toggle">
+                                <input type="checkbox" id="oa" />
+                                <span class="pill-dot" aria-hidden="true"></span>
+                                <span>open access</span>
+                            </label>
+                        </div>
+                    </form>
+
+                    <div class="suggestions" id="suggestions" aria-label="Example searches">
+                        <button type="button" class="suggestion" data-q="climate change adaptation">climate change adaptation</button>
+                        <button type="button" class="suggestion" data-q="large language models in education">LLMs in education</button>
+                        <button type="button" class="suggestion" data-q="mobile money financial inclusion Africa">mobile money financial inclusion</button>
+                        <button type="button" class="suggestion" data-q="CRISPR gene editing ethics">CRISPR ethics</button>
+                    </div>
+
+                    <section class="results-area" aria-label="Results">
+                        <p id="resultsMeta" class="results-meta" role="status" aria-live="polite"></p>
+                        <div id="results" class="results-list" aria-live="polite"></div>
+                        <nav id="pagination" class="pagination" aria-label="Pages"></nav>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div data-component="toast"></div>
+</body>
+</html>
