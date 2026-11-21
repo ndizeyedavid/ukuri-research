@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ukuri Research Auditor · Cite (APA 7)</title>
+  <meta name="description" content="Generate APA 7 reference entries and in-text citations from any OpenAlex work or DOI." />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="/styles.css" />
+  <meta name="theme-color" content="#f4f4f3" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Ukuri Research Auditor" />
+  <meta property="og:description" content="Search academic papers, generate APA 7 citations, and audit your reference list, powered by OpenAlex." />
+  <meta property="og:site_name" content="Ukuri Research Auditor" />
+  <meta name="twitter:card" content="summary" />
+  <script type="module" src="/js/components.js"></script>
+  <script type="module" src="/js/cite.js"></script>
+</head>
+<body data-page="cite">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="shell">
+    <div data-component="sidebar"></div>
+
+    <main class="panel" id="main" tabindex="-1">
+      <header class="topbar">
+        <h1 class="topbar-title">Cite · APA 7</h1>
+        <a class="topbar-link" href="https://docs.openalex.org" rel="noopener noreferrer" target="_blank">OpenAlex ↗</a>
+      </header>
+
+      <div class="page">
+        <div class="page-inner page-inner-wide">
+          <header class="page-head">
+            <h2 class="page-heading">Cite it right</h2>
+            <p class="page-sub">Pick a work from Search, paste a DOI, or fill the fields by hand. References copy with real italics for Word and Google Docs.</p>
+          </header>
+
+          <div class="lookup-wrap">
+            <form id="doiForm" class="lookup" role="search">
+              <span class="lookup-prefix" aria-hidden="true">find</span>
+              <input class="lookup-input" id="doiInput" type="text" placeholder="DOI, doi.org / OpenAlex link, or a paper title" aria-label="DOI, link or title" autocomplete="off" spellcheck="false" aria-controls="lookupResults" />
+              <button class="btn btn-primary" type="submit" id="doiBtn">Look up</button>
+            </form>
+            <div id="lookupResults" class="lookup-results" role="listbox" aria-label="Matching works" hidden></div>
+          </div>
+
+          <div class="source-bar" id="sourceBar">
+            <span class="source-chip" id="sourceChip" data-kind="manual"><span class="dot"></span><span id="sourceText">manual entry</span></span>
+            <p id="citeStatus" class="cite-status" role="status" aria-live="polite"></p>
+            <button class="btn btn-ghost btn-small" id="newCitation" type="button">New citation</button>
+          </div>
+
+          <section id="mapCard" class="card map-card map-collapsible" hidden aria-label="Citation map">
+            <button class="map-toggle" id="mapToggle" type="button" aria-expanded="false" aria-controls="citationMap">
+              <span class="map-toggle-title">Citation map</span>
+              <span class="map-toggle-meta" id="mapMeta"></span>
+              <span class="vrow-chev" aria-hidden="true"></span>
+            </button>
+            <div id="citationMap" hidden></div>
+          </section>
+
+          <div class="cite-grid">
+            <section class="card cite-form" aria-label="Citation fields">
+              <p class="section-label">Fields</p>
+              <label class="field" data-field="authors">Authors <span class="field-hint">“First Last, First Last” · APA “Smith, J., &amp; Doe, A.” · use ; if a name has a comma</span>
+                <input class="input" id="fAuthors" type="text" placeholder="Ashish Vaswani, Noam Shazeer, …" autocomplete="off" />
+              </label>
+              <div class="field-2col">
+                <label class="field" data-field="year">Year <input class="input" id="fYear" type="number" min="1500" max="2100" placeholder="2017" /></label>
+                <label class="field" data-field="doi">DOI <input class="input input-mono" id="fDoi" type="text" placeholder="10.48550/arxiv.1706.03762" autocomplete="off" /></label>
+              </div>
+              <label class="field" data-field="title">Title <input class="input" id="fTitle" type="text" placeholder="Attention is all you need" autocomplete="off" /></label>
+              <label class="field" data-field="journal">Journal / source <input class="input" id="fJournal" type="text" placeholder="NeurIPS" autocomplete="off" /></label>
+              <div class="field-3col">
+                <label class="field" data-field="volume">Volume <input class="input" id="fVolume" type="text" placeholder="30" /></label>
+                <label class="field" data-field="issue">Issue <input class="input" id="fIssue" type="text" placeholder="7" /></label>
+                <label class="field" data-field="pages">Pages <input class="input" id="fPages" type="text" placeholder="5998–6008" /></label>
+              </div>
+              <div class="cite-actions">
+                <button class="btn btn-primary" id="copyRef" type="button">Copy reference</button>
+                <button class="btn" id="saveList" type="button">Save to reading list</button>
+              </div>
+            </section>
+
+            <section class="card cite-preview" aria-label="Preview">
+              <div id="retractNotice" class="notice notice-danger" hidden>
+                <strong>This work has been retracted.</strong> Flag the retraction or cite the retraction notice instead. Don’t use it as sound evidence.
+              </div>
+
+              <div class="preview-block">
+                <div class="preview-head">
+                  <div class="map-tabs" role="tablist" aria-label="Reference format">
+                    <button class="tab is-active" type="button" role="tab" data-fmt="apa" aria-selected="true">APA 7</button>
+                    <button class="tab" type="button" role="tab" data-fmt="bibtex" aria-selected="false">BibTeX</button>
+                    <button class="tab" type="button" role="tab" data-fmt="ris" aria-selected="false">RIS</button>
+                  </div>
+                  <button class="btn btn-ghost btn-small" id="copyRefPlain" type="button">Copy plain</button>
+                </div>
+                <p id="refPreview" class="apa-preview"><span class="muted">Fill the fields and your APA 7 reference appears here.</span></p>
+                <pre id="codePreview" class="code-preview" hidden></pre>
+              </div>
+
+              <ul id="checks" class="checks" aria-label="Missing information" hidden></ul>
+
+              <div class="preview-block">
+                <div class="preview-head">
+                  <p class="section-label">In-text · parenthetical</p>
+                  <button class="btn btn-ghost btn-small" id="copyParen" type="button">Copy</button>
+                </div>
+                <p id="inParen" class="apa-preview apa-inline"><span class="muted">Waiting for author and year</span></p>
+              </div>
+              <div class="preview-block">
+                <div class="preview-head">
+                  <p class="section-label">In-text · narrative</p>
+                  <button class="btn btn-ghost btn-small" id="copyNarr" type="button">Copy</button>
+                </div>
+                <p id="inNarr" class="apa-preview apa-inline"><span class="muted">Waiting for author and year</span></p>
+              </div>
+            </section>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div data-component="toast"></div>
+</body>
+</html>

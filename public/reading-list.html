@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ukuri Research Auditor · Reading list</title>
+  <meta name="description" content="Your saved references in APA 7, ready to copy or export." />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="/styles.css" />
+  <meta name="theme-color" content="#f4f4f3" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Ukuri Research Auditor" />
+  <meta property="og:description" content="Search academic papers, generate APA 7 citations, and audit your reference list, powered by OpenAlex." />
+  <meta property="og:site_name" content="Ukuri Research Auditor" />
+  <meta name="twitter:card" content="summary" />
+  <script type="module" src="/js/components.js"></script>
+  <script type="module" src="/js/reading-list.js"></script>
+</head>
+<body data-page="reading-list">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="shell">
+    <div data-component="sidebar"></div>
+
+    <main class="panel" id="main" tabindex="-1">
+      <header class="topbar">
+        <h1 class="topbar-title">Reading list</h1>
+        <a class="topbar-link" href="https://docs.openalex.org" rel="noopener noreferrer" target="_blank">OpenAlex ↗</a>
+      </header>
+
+      <div class="page">
+        <div class="page-inner">
+          <header class="page-head">
+            <h2 class="page-heading">Reading list</h2>
+            <p class="page-sub">Papers saved from Search or the citation builder. Stored locally in your browser, exportable as APA 7 anytime.</p>
+          </header>
+
+          <div id="listStats" class="list-stats" hidden></div>
+          <div id="retractedNotice" class="notice notice-danger" hidden></div>
+
+          <div id="listTools" class="list-tools" hidden>
+            <label class="list-search">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="listQuery" type="search" placeholder="Filter by title, author, journal, year…" autocomplete="off" aria-label="Filter saved references" />
+            </label>
+            <div class="list-tools-row">
+              <div class="filter-group" id="listFilters" role="group" aria-label="Filter"></div>
+              <div class="report-tools-right">
+                <label class="pill"><span class="pill-key">sort</span>
+                  <select id="listSort" aria-label="Sort">
+                    <option value="saved">recently saved</option>
+                    <option value="author">author a–z</option>
+                    <option value="newest">newest first</option>
+                    <option value="oldest">oldest first</option>
+                    <option value="cited">most cited</option>
+                  </select>
+                </label>
+                <button class="btn btn-small" id="mapToggle" type="button" aria-expanded="false">Citation map</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="mapCard" class="card map-card" hidden>
+            <div id="citationMap"></div>
+          </div>
+
+          <div id="selectBar" class="select-bar" hidden>
+            <label class="check"><input type="checkbox" id="selectAll" /><span id="selectLabel">Select all</span></label>
+            <span class="select-actions">
+              <button class="btn btn-ghost btn-small" id="copySel" type="button">Copy APA</button>
+              <span class="export-menu">
+                <button class="btn btn-small" id="exportBtn" type="button" aria-haspopup="true" aria-expanded="false">Export</button>
+                <span class="menu" id="exportMenu" role="menu" hidden>
+                  <button type="button" role="menuitem" data-fmt="txt">APA 7 <span>.txt</span></button>
+                  <button type="button" role="menuitem" data-fmt="bib">BibTeX <span>.bib</span></button>
+                  <button type="button" role="menuitem" data-fmt="ris">RIS <span>.ris</span></button>
+                  <button type="button" role="menuitem" data-fmt="csv">Spreadsheet <span>.csv</span></button>
+                </span>
+              </span>
+              <button class="btn btn-ghost btn-small btn-quiet-danger" id="removeSel" type="button">Remove</button>
+            </span>
+          </div>
+
+          <div id="readingList" class="saved-list"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div data-component="toast"></div>
+</body>
+</html>

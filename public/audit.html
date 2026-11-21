@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ukuri Research Auditor · Audit references</title>
+  <meta name="description" content="Paste a reference list or upload a PDF. Ukuri checks every reference against OpenAlex and flags ghost, mismatched, or retracted citations." />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="/styles.css" />
+  <meta name="theme-color" content="#f4f4f3" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Ukuri Research Auditor" />
+  <meta property="og:description" content="Search academic papers, generate APA 7 citations, and audit your reference list, powered by OpenAlex." />
+  <meta property="og:site_name" content="Ukuri Research Auditor" />
+  <meta name="twitter:card" content="summary" />
+  <script type="module" src="/js/components.js"></script>
+  <script type="module" src="/js/audit.js"></script>
+</head>
+<body data-page="audit">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="shell">
+    <div data-component="sidebar"></div>
+
+    <main class="panel" id="main" tabindex="-1">
+      <header class="topbar">
+        <h1 class="topbar-title">Audit references</h1>
+        <a class="topbar-link" href="https://docs.openalex.org" rel="noopener noreferrer" target="_blank">OpenAlex ↗</a>
+      </header>
+
+      <div class="page">
+        <div class="page-inner">
+          <header class="page-head">
+            <h2 class="page-heading">Truth-check every reference</h2>
+            <p class="page-sub">Paste a reference list or upload a PDF. PDFs are parsed locally and never leave your browser. Each entry is checked against OpenAlex: valid, mismatch, likely ghost, retracted, or unverifiable.</p>
+          </header>
+
+          <div id="inputSummary" class="input-summary" hidden>
+            <span class="input-summary-main">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="input-summary-text" id="inputSummaryText"></span>
+            </span>
+            <button class="btn btn-small" id="editList" type="button">Edit list</button>
+          </div>
+
+          <div id="inputStage">
+          <div class="tabs" role="tablist">
+            <button class="tab is-active" id="tabPaste" role="tab" aria-selected="true" aria-controls="panePaste" type="button">Paste list</button>
+            <button class="tab" id="tabPdf" role="tab" aria-selected="false" aria-controls="panePdf" type="button">Upload PDF</button>
+          </div>
+
+          <section id="panePaste" class="audit-pane" role="tabpanel" aria-labelledby="tabPaste">
+            <p class="pane-hint">One reference per line, or separate entries with a blank line. Org-author entries without a surname (“IPCC. (2023)…”) work best on their own line.</p>
+          </section>
+
+          <section id="panePdf" class="audit-pane" role="tabpanel" aria-labelledby="tabPdf" hidden>
+            <input type="file" id="pdfFile" accept="application/pdf,.pdf" class="sr-only" />
+            <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose a PDF file">
+              <i class="fa-regular fa-file-pdf dropzone-icon" aria-hidden="true"></i>
+              <p><strong>Choose a PDF</strong> or drop it here</p>
+              <p class="dropzone-hint">max 25 MB · text-based PDFs only</p>
+            </div>
+            <p id="extractStatus" class="extract-status" role="status" aria-live="polite"></p>
+          </section>
+
+          <div class="editor">
+            <label class="editor-head" for="refInput">
+              <span>references</span>
+              <span id="refCount" class="ref-count">0 references detected</span>
+            </label>
+            <textarea id="refInput" class="editor-input" rows="9" spellcheck="false" placeholder="Vaswani, A., Shazeer, N., et al. (2017). Attention is all you need. NeurIPS. https://doi.org/10.48550/arxiv.1706.03762"></textarea>
+            <div class="editor-foot">
+              <span class="audit-note">up to 100 per run · ~1s per reference</span>
+              <span class="editor-actions">
+                <button class="btn btn-ghost" id="clearAll" type="button">Clear</button>
+                <button class="btn btn-primary" id="runAudit" type="button">Run audit</button>
+              </span>
+            </div>
+          </div>
+          </div>
+
+          <div id="progressWrap" class="progress-wrap" hidden>
+            <div class="progress-head">
+              <p id="progressText" class="progress-text" role="status" aria-live="polite">Starting…</p>
+              <button class="btn btn-ghost btn-small" id="cancelAudit" type="button">Stop</button>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+
+          <section id="report" class="report" hidden aria-label="Audit report">
+            <div class="report-head">
+              <div class="report-score">
+                <span class="report-score-num" id="scoreNum">n/a</span>
+                <span class="report-score-label">integrity</span>
+              </div>
+              <div class="report-summary">
+                <p class="report-headline" id="reportHeadline"></p>
+                <p class="report-sub" id="reportSub"></p>
+              </div>
+            </div>
+            <div class="report-bar" id="reportBar" aria-hidden="true"></div>
+
+            <section id="networkCard" class="card map-card map-collapsible network-card" hidden aria-label="Citation network">
+              <button class="map-toggle" id="networkToggle" type="button" aria-expanded="true" aria-controls="networkBody">
+                <span class="map-toggle-title">Citation network</span>
+                <span class="map-toggle-meta" id="networkMeta"></span>
+                <span class="vrow-chev" aria-hidden="true"></span>
+              </button>
+              <div id="networkBody">
+                <div id="networkInsights" class="network-insights"></div>
+                <div id="networkMap"></div>
+                <p class="network-legend" aria-hidden="true">
+                  <span class="lg lg-mine">your reference</span>
+                  <span class="lg lg-hub">shared foundation (outside your list)</span>
+                  <span class="lg lg-int">cites another of yours</span>
+                  <span class="lg lg-ext">cites a shared foundation</span>
+                </p>
+              </div>
+            </section>
+
+            <div class="report-tools">
+              <div class="filter-group" id="filters" role="group" aria-label="Filter results"></div>
+              <div class="report-tools-right">
+                <label class="pill"><span class="pill-key">sort</span>
+                  <select id="sortMode" aria-label="Sort results">
+                    <option value="severity">severity</option>
+                    <option value="order">list order</option>
+                    <option value="score">match score</option>
+                  </select>
+                </label>
+                <button class="btn btn-ghost btn-small" id="toggleAll" type="button">Expand all</button>
+              </div>
+            </div>
+
+            <div id="verdicts" class="verdicts"></div>
+
+            <div id="exportRow" class="export-row">
+              <span class="audit-note" id="savedNote"></span>
+              <span class="export-actions">
+                <button class="btn" id="exportCsv" type="button">Report .csv</button>
+                <button class="btn" id="copyCorrected" type="button">Copy corrected list</button>
+                <button class="btn btn-primary" id="exportTxt" type="button">Export .txt</button>
+              </span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div data-component="toast"></div>
+</body>
+</html>
