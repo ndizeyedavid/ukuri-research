@@ -123,8 +123,8 @@ flowchart LR
 **Requirements:** Node.js 20 or newer, and an [OpenAlex API key](https://openalex.org) (free).
 
 ```bash
-git clone https://github.com/<your-username>/ukuri-research-auditor.git
-cd ukuri-research-auditor
+git clone https://github.com/ndizeyedavid/ukuri-research.git
+cd ukuri-research
 npm install
 cp .env.example .env        # then fill in OPENALEX_API_KEY and MAILTO
 npm run dev                 # restarts on file changes
@@ -204,11 +204,11 @@ Everything needed lives in [`infra/`](infra):
 ### 1. Web01 and Web02
 
 ```bash
-ssh ubuntu@<WEB01_IP>
-git clone https://github.com/<your-username>/ukuri-research-auditor.git /tmp/ukuri
-sudo bash /tmp/ukuri/infra/deploy.sh web01 https://github.com/<your-username>/ukuri-research-auditor.git
-sudo nano /var/www/ukuri-research-auditor/.env    # add OPENALEX_API_KEY and MAILTO
-sudo bash /var/www/ukuri-research-auditor/infra/deploy.sh web01
+ssh ubuntu@18.130.141.151
+git clone https://github.com/ndizeyedavid/ukuri-research.git /tmp/ukuri
+sudo bash /tmp/ukuri/infra/deploy.sh web01 https://github.com/ndizeyedavid/ukuri-research.git
+sudo nano /var/www/ukuri-research/.env    # add OPENALEX_API_KEY and MAILTO
+sudo bash /var/www/ukuri-research/infra/deploy.sh web01
 ```
 
 Repeat on Web02 with `web02`. The script installs Node.js 20, nginx and pm2, installs
@@ -220,7 +220,7 @@ ends with a smoke test. Re-run it after every `git push` to update a server.
 ```bash
 sudo apt-get install -y haproxy
 sudo cp infra/haproxy.cfg /etc/haproxy/haproxy.cfg
-sudo sed -i 's/WEB01_IP/<web01-ip>/; s/WEB02_IP/<web02-ip>/' /etc/haproxy/haproxy.cfg
+sudo sed -i 's/WEB01_IP/18.130.141.151/; s/WEB02_IP/18.171.135.64/' /etc/haproxy/haproxy.cfg
 sudo haproxy -c -f /etc/haproxy/haproxy.cfg && sudo service haproxy restart
 ```
 
@@ -231,7 +231,7 @@ Apply the UFW rules in [`firewall-notes.md`](infra/firewall-notes.md). Port 3000
 ### 4. Verify
 
 ```bash
-bash infra/verify.sh <LB01_IP> <WEB01_IP> <WEB02_IP>
+bash infra/verify.sh 35.179.139.142 18.130.141.151 18.171.135.64
 ```
 
 The script checks each server directly, then sends ten requests through the load balancer
