@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
 SERVER_NAME="${1:-}"
