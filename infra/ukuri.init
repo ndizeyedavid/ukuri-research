@@ -1,0 +1,64 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          ukuri
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Ukuri Research Auditor API (pm2)
+### END INIT INFO
+
+NAME=ukuri
+[ -f /etc/default/ukuri ] && . /etc/default/ukuri
+APP_DIR="${APP_DIR:-/var/www/ukuri-research-auditor}"
+APP_USER="${APP_USER:-ubuntu}"
+ECOSYSTEM="$APP_DIR/infra/ecosystem.config.cjs"
+LOG_DIR="${LOG_DIR:-/var/log/ukuri}"
+PM2="${PM2:-$(command -v pm2 || echo /usr/bin/pm2)}"
+APP_HOME="$(getent passwd "$APP_USER" 2>/dev/null | cut -d: -f6)"
+[ -n "$APP_HOME" ] || APP_HOME="/home/$APP_USER"
+
+pm2_run() {
+    su -s /bin/sh -c "export HOME='$APP_HOME'; cd '$APP_DIR' && '$PM2' $*" "$APP_USER"
+}
+
+is_running() {
+    pm2_run describe "$NAME" >/dev/null 2>&1
+}
+
+if [ ! -x "$PM2" ]; then
+    echo "$NAME: pm2 not found at $PM2 (npm install -g pm2)" >&2
+    exit 1
+fi
+
+case "$1" in
+    start)
+        mkdir -p "$LOG_DIR"
+        chown "$APP_USER":"$APP_USER" "$LOG_DIR" 2>/dev/null || true
+        if is_running; then
+            pm2_run restart "$NAME" --update-env
+        else
+            pm2_run start "$ECOSYSTEM"
+        fi
+        pm2_run save
+        ;;
+    stop)
+        pm2_run stop "$NAME" || true
+        pm2_run save
+        ;;
+    restart|reload|force-reload)
+        if is_running; then
+            pm2_run restart "$NAME" --update-env
+        else
+            pm2_run start "$ECOSYSTEM"
+        fi
+        pm2_run save
+        ;;
+    status)
+        pm2_run describe "$NAME"
+        ;;
+    *)
+        echo "usage: $0 {start|stop|restart|reload|status}" >&2
+        exit 1
+        ;;
+esac
