@@ -95,7 +95,7 @@ APA 7 references, and keeping a reading list you can export to any reference man
 | Diagrams        | [Kroki.io](https://kroki.io)                           | Renders Mermaid and Graphviz source to SVG, so no chart library is shipped    |
 | PDF parsing     | [pdf.js](https://mozilla.github.io/pdf.js/) (vendored) | Client-side text extraction                                                   |
 | Web server      | nginx                                                  | Static files, gzip, caching, reverse proxy to Express                         |
-| Process manager | pm2 (or systemd)                                       | Keeps the API running across crashes and reboots                              |
+| Process manager | pm2 (SysVinit script)                                  | Keeps the API running across crashes and reboots                              |
 | Load balancer   | HAProxy                                                | Round robin with `/healthz` checks                                            |
 
 ## Architecture
@@ -196,7 +196,7 @@ Everything needed lives in [`infra/`](infra):
 | [`deploy.sh`](infra/deploy.sh)                       | Idempotent setup and update script for Web01 and Web02              |
 | [`nginx-ukuri.conf`](infra/nginx-ukuri.conf)         | nginx vhost: static files, gzip, caching, `/api` proxy, branded 404 |
 | [`ecosystem.config.cjs`](infra/ecosystem.config.cjs) | pm2 process definition                                              |
-| [`ukuri.service`](infra/ukuri.service)               | systemd unit, an alternative to pm2                                 |
+| [`ukuri.init`](infra/ukuri.init)                     | SysVinit script for the API, boots pm2 on systemd-less hosts        |
 | [`haproxy.cfg`](infra/haproxy.cfg)                   | Lb01 round robin with health checks                                 |
 | [`firewall-notes.md`](infra/firewall-notes.md)       | UFW rules for all three servers                                     |
 | [`verify.sh`](infra/verify.sh)                       | End-to-end checks, including a round-robin count                    |
@@ -221,7 +221,7 @@ ends with a smoke test. Re-run it after every `git push` to update a server.
 sudo apt-get install -y haproxy
 sudo cp infra/haproxy.cfg /etc/haproxy/haproxy.cfg
 sudo sed -i 's/WEB01_IP/<web01-ip>/; s/WEB02_IP/<web02-ip>/' /etc/haproxy/haproxy.cfg
-sudo haproxy -c -f /etc/haproxy/haproxy.cfg && sudo systemctl restart haproxy
+sudo haproxy -c -f /etc/haproxy/haproxy.cfg && sudo service haproxy restart
 ```
 
 ### 3. Firewall
