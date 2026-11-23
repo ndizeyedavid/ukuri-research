@@ -24,8 +24,8 @@ Ukuri means _truth_ in Kinyarwanda.
 
 |                        |                             |
 | ---------------------- | --------------------------- |
-| Live application       | _TBD_                       |
-| Demo video             | _TBD_                       |
+| Live application       | <https://ukuri.mellowjr.tech>                       |
+| Demo video             | <https://youtu.be/7hKlqEu1CVs>                       |
 | OpenAlex documentation | <https://docs.openalex.org> |
 | Kroki documentation    | <https://docs.kroki.io>     |
 
@@ -285,6 +285,13 @@ watch the server chip in the top bar change, or open the Credits page.
 | Kroki returns third-party SVG that is inserted into the page                                                                                          | Server-side proxy with an engine allowlist and SVG sanitising                                                                                                                |
 | nginx dropped security headers on cached assets                                                                                                       | `add_header` in a `location` block discards inherited headers; caching now uses `expires`                                                                                    |
 
+## Mirror Links
+|                        |                             |
+| ---------------------- | --------------------------- |
+| Mirror 1 (LB-01)       | <http://35.179.139.142/>    |
+| Mirror 2 (Web-01)      | <http://18.130.141.151>     |
+| Mirror 3 (Web-02       | <http://18.171.135.64>      |
+
 ## Credits
 
 - Scholarly metadata from [OpenAlex](https://openalex.org), released under CC0.
@@ -295,5 +302,5 @@ watch the server chip in the top bar change, or open the Credits page.
 
 ## Author
 
-Built by [ndizeyedavid](https://github.com/ndizeyedavid) for the African Leadership University
+Built with so much love and tears by [ndizeyedavid](https://github.com/ndizeyedavid) for the African Leadership University
 Web Infrastructure course ("Playing Around with APIs").
