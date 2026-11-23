@@ -150,8 +150,8 @@ Open <http://127.0.0.1:3000>. Express serves `public/` itself in development, so
 | `npm run dev`           | Start with `node --watch`                                                                                                        |
 | `npm test`              | Offline parser checks: 15 reference formats (APA, Harvard, IEEE, MLA, Chicago, Vancouver, edge cases)                            |
 | `npm run test:live`     | Full matcher against live OpenAlex: real papers, planted fakes, mutations, a retraction (needs `.env`)                           |
-| `npm run test:sample`   | Audits `test/sample.txt`, a 43-entry reference list extracted from a journal PDF, against live OpenAlex                          |
-| `node test/battery.mjs` | Run the audit test battery and a concurrency check against a running server (`BASE=http://host:port` to target another instance) |
+| `npm run test:sample`   | Audits `tests/sample.txt`, a 43-entry reference list extracted from a journal PDF, against live OpenAlex                          |
+| `node tests/battery.mjs` | Run the audit test battery and a concurrency check against a running server (`BASE=http://host:port` to target another instance) |
 
 ## API reference
 
@@ -198,7 +198,6 @@ Everything needed lives in [`infra/`](infra):
 | [`ecosystem.config.cjs`](infra/ecosystem.config.cjs) | pm2 process definition                                              |
 | [`ukuri.init`](infra/ukuri.init)                     | SysVinit script for the API, boots pm2 on systemd-less hosts        |
 | [`haproxy.cfg`](infra/haproxy.cfg)                   | Lb01 round robin with health checks                                 |
-| [`firewall-notes.md`](infra/firewall-notes.md)       | UFW rules for all three servers                                     |
 | [`verify.sh`](infra/verify.sh)                       | End-to-end checks, including a round-robin count                    |
 
 ### 1. Web01 and Web02
@@ -224,11 +223,7 @@ sudo sed -i 's/WEB01_IP/18.130.141.151/; s/WEB02_IP/18.171.135.64/' /etc/haproxy
 sudo haproxy -c -f /etc/haproxy/haproxy.cfg && sudo service haproxy restart
 ```
 
-### 3. Firewall
-
-Apply the UFW rules in [`firewall-notes.md`](infra/firewall-notes.md). Port 3000 is never exposed.
-
-### 4. Verify
+### 3. Verify
 
 ```bash
 bash infra/verify.sh 35.179.139.142 18.130.141.151 18.171.135.64
@@ -258,7 +253,7 @@ watch the server chip in the top bar change, or open the Credits page.
 │   ├── index.js            Express routes, Kroki proxy, static fallback
 │   ├── openalex.js         OpenAlex client, TTL cache, response trimming
 │   └── match.js            reference parsing, scoring and verdicts
-├── test/battery.mjs        audit accuracy and concurrency checks
+├── tests/battery.mjs        audit accuracy and concurrency checks
 ├── .env.example
 └── package.json
 ```
